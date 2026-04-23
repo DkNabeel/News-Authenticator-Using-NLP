@@ -15,20 +15,31 @@ def clean_text(text):
 
 #News Verify
 def verify_news(query):
-url = “https://newsapi.org/v2/everything”
-params = {
-    "q": query,
-    "apiKey": API_KEY,
-    "domains": "thehindu.com,indiatimes.com,indianexpress.com,ndtv.com,reuters.com"
-}
+    url = "https://newsapi.org/v2/everything"
 
-response = requests.get(url, params=params)
-data = response.json()
+    params = {
+        "q": query,
+        "apiKey": API_KEY,
+        "domains": "thehindu.com,indiatimes.com,indianexpress.com,ndtv.com,reuters.com",
+        "pageSize": 2
+    }
 
-if data["status"] == "ok" and data["totalResults"] > 0:
-    return True
-else:
-    return False
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if data["status"] == "ok" and data["totalResults"] > 0:
+        articles = data["articles"]
+
+        links = []
+        sources = []
+
+        for article in articles:
+            links.append(article["url"])
+            sources.append(article["source"]["name"])
+
+        return True, links, sources
+
+    return False, [], []
 
 # load + train model (runs only once)
 @st.cache_resource
@@ -90,7 +101,6 @@ image = st.file_uploader("Upload image")
 # prediction
 if st.button("Check"):
     if text:
-        # clean input
         cleaned = clean_text(text)
 
         # ML prediction
@@ -98,11 +108,17 @@ if st.button("Check"):
         prediction = model.predict(vector)[0]
 
         # API verification
-        is_verified = verify_news(cleaned)
+        is_verified, links, sources = verify_news(cleaned)
 
-        # final output
         if is_verified:
             st.write("Result:", prediction, "(Verified ✅)")
+
+            if sources:
+                st.write(f"Verified from: {sources[0]} 🔗")
+
+            for link in links:
+                st.write(link)
+
         else:
             st.write("Result:", prediction, "(Unverified ⚠️)")
 
@@ -113,4 +129,4 @@ if st.button("Check"):
         st.write("Image input received")
 
     else:
-        st.write("No input provided")
+        st.write("No input provided"
