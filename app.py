@@ -4,47 +4,60 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
-# clean input text
+# clean text
 def clean_text(text):
     return re.sub(r'[^a-zA-Z ]', '', text.lower())
 
-# load fake data
-fake_df = pd.concat([
-    pd.read_csv("Fake1.csv"),
-    pd.read_csv("Fake2.csv"),
-    pd.read_csv("Fake3.csv"),
-    pd.read_csv("Fake4.csv"),
-    pd.read_csv("Fake5.csv"),
-    pd.read_csv("Fake6.csv")
-])
+# load + train model (runs only once)
+@st.cache_resource
+def load_model():
 
-# load real data
-true_df = pd.concat([
-    pd.read_csv("True1.csv"),
-    pd.read_csv("True2.csv"),
-    pd.read_csv("True3.csv"),
-    pd.read_csv("True4.csv")
-])
+    # load fake files
+    fake_df = pd.concat([
+        pd.read_csv("Fake1.csv"),
+        pd.read_csv("Fake2.csv"),
+        pd.read_csv("Fake3.csv"),
+        pd.read_csv("Fake4.csv"),
+        pd.read_csv("Fake5.csv"),
+        pd.read_csv("Fake6.csv")
+    ])
 
-# add labels
-fake_df["label"] = "Fake"
-true_df["label"] = "Real"
+    # load real files
+    true_df = pd.concat([
+        pd.read_csv("True1.csv"),
+        pd.read_csv("True2.csv"),
+        pd.read_csv("True3.csv"),
+        pd.read_csv("True4.csv")
+    ])
 
-# combine data
-data = pd.concat([fake_df, true_df])
+    # add labels
+    fake_df["label"] = "Fake"
+    true_df["label"] = "Real"
 
-# select columns
-texts = data["text"]
-labels = data["label"]
+    # combine
+    data = pd.concat([fake_df, true_df])
 
-# train model
-vectorizer = TfidfVectorizer(max_features=5000)
-X = vectorizer.fit_transform(texts)
+    # reduce size for speed
+    data = data.sample(3000)
 
-model = MultinomialNB()
-model.fit(X, labels)
+    # select columns
+    texts = data["text"]
+    labels = data["label"]
 
-# UI (your original)
+    # vectorize
+    vectorizer = TfidfVectorizer(max_features=5000)
+    X = vectorizer.fit_transform(texts)
+
+    # train model
+    model = MultinomialNB()
+    model.fit(X, labels)
+
+    return vectorizer, model
+
+# load model once
+vectorizer, model = load_model()
+
+# UI
 st.title("📰 Fake News Detector")
 st.write("Enter news using text, link, or image")
 
@@ -59,9 +72,12 @@ if st.button("Check"):
         vector = vectorizer.transform([cleaned])
         prediction = model.predict(vector)[0]
         st.write("Result:", prediction)
+
     elif link:
         st.write("Link input received")
+
     elif image:
         st.write("Image input received")
+
     else:
         st.write("No input provided")
