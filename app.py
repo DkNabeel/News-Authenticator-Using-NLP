@@ -35,10 +35,16 @@ text = st.text_area("Enter text")
 link = st.text_input("Enter link")
 image = st.file_uploader("Upload image")
 
+
+
 if st.button("Check"):
     if text:
         cleaned = clean_text(text)
+
+        vector = vectorizer.transform([cleaned])
+
         st.write("Cleaned Text:", cleaned)
+        st.write("TF-IDF Vector:", vector.toarray())
 
     elif link:
         st.write("Link input received")
