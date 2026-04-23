@@ -1,6 +1,8 @@
 import streamlit as st
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
 
 def clean_text(text):
     text = text.lower()
@@ -8,7 +10,6 @@ def clean_text(text):
     return text
 
 
-vectorizer = TfidfVectorizer()
 sample_data = [
     "fake news spreading fast","breaking fake rumor viral","false claims on social media","government releases official report","official statement from ministry","weather department issues storm warning","heavy rain expected in city","police confirms incident officially"
     "fake news spreading fast",
@@ -29,8 +30,8 @@ sample_data = [
 
 labels = ["Fake","Fake","Fake","Real","Real","Real","Real","Real"]
 
-
-vectorizer.fit(sample_data)
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(texts)
 model = MultinomialNB()
 model.fit(X, labels)
 
