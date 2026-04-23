@@ -10,6 +10,7 @@ def clean_text(text):
 
 vectorizer = TfidfVectorizer()
 sample_data = [
+    "fake news spreading fast","breaking fake rumor viral","false claims on social media","government releases official report","official statement from ministry","weather department issues storm warning","heavy rain expected in city","police confirms incident officially"
     "fake news spreading fast",
     "breaking fake news viral on social media",
     "government releases official report",
@@ -25,7 +26,15 @@ sample_data = [
     "news channel reports major event",
     "police confirms incident officially"
 ]
+
+labels = ["Fake","Fake","Fake","Real","Real","Real","Real","Real"]
+
+
 vectorizer.fit(sample_data)
+model = MultinomialNB()model.fit(X, labels)
+
+
+
 
 st.title("📰 Fake News Detector")
 
@@ -35,34 +44,13 @@ text = st.text_area("Enter text")
 link = st.text_input("Enter link")
 image = st.file_uploader("Upload image")
 
-if st.button("Check"):
-    if text:
-        cleaned = clean_text(text)
+if st.button("Check"):if text:cleaned = clean_text(text)
 
-        vector = vectorizer.transform([cleaned])
+    vector = vectorizer.transform([cleaned])
 
-        st.write("Cleaned Text:", cleaned)
+    prediction = model.predict(vector)[0]
 
-        # -------- DEBUG (TF-IDF mapping) --------
-        feature_names = vectorizer.get_feature_names_out()
-        vector_array = vector.toarray()[0]
+    st.write("Result:", prediction)
 
-        word_values = []
-
-        for i, v in enumerate(vector_array):
-            if v > 0:
-                word_values.append((feature_names[i], v))
-
-        st.write("Word Importance:", word_values)
-        # ---------------------------------------
-
-    elif link:
-        st.write("Link input received")
-
-    elif image:
-        st.write("Image input received")
-
-    else:
-        st.write("No input provided")
-
-
+else:
+    st.write("Enter some text")
