@@ -31,7 +31,8 @@ labels = ["Fake","Fake","Fake","Real","Real","Real","Real","Real"]
 
 
 vectorizer.fit(sample_data)
-model = MultinomialNB()model.fit(X, labels)
+model = MultinomialNB()
+model.fit(X, labels)
 
 
 
