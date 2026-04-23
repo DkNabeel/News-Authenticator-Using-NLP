@@ -46,9 +46,14 @@ link = st.text_input("Enter link")
 image = st.file_uploader("Upload image")
 
 if st.button("Check"):
-    if text:cleaned = clean_text(text)
+    if text:
+        cleaned = clean_text(text)
+
         vector = vectorizer.transform([cleaned])
-        prediction = model.predict(vector)
+
+        prediction = model.predict(vector)[0]
+
         st.write("Result:", prediction)
+
     else:
         st.write("Enter some text")
