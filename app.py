@@ -128,5 +128,5 @@ if st.button("Check"):
     elif image:
         st.write("Image input received")
 
-    else:
-        st.write("No input provided"
+    else: 
+        st.write("No input provided")
