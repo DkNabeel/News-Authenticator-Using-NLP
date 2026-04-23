@@ -35,8 +35,6 @@ text = st.text_area("Enter text")
 link = st.text_input("Enter link")
 image = st.file_uploader("Upload image")
 
-
-
 if st.button("Check"):
     if text:
         cleaned = clean_text(text)
@@ -44,7 +42,19 @@ if st.button("Check"):
         vector = vectorizer.transform([cleaned])
 
         st.write("Cleaned Text:", cleaned)
-        st.write("TF-IDF Vector:", vector.toarray())
+
+        # -------- DEBUG (TF-IDF mapping) --------
+        feature_names = vectorizer.get_feature_names_out()
+        vector_array = vector.toarray()[0]
+
+        word_values = []
+
+        for i, v in enumerate(vector_array):
+            if v > 0:
+                word_values.append((feature_names[i], v))
+
+        st.write("Word Importance:", word_values)
+        # ---------------------------------------
 
     elif link:
         st.write("Link input received")
@@ -54,3 +64,5 @@ if st.button("Check"):
 
     else:
         st.write("No input provided")
+
+
