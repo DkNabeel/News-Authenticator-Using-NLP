@@ -1,57 +1,59 @@
-import streamlit as st
+limport streamlit as st
 import re
+import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
-
+# clean input text
 def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z ]', '', text)
-    return text
+    return re.sub(r'[^a-zA-Z ]', '', text.lower())
 
-sample_data = [
-    "fake news spreading fast",
-    "breaking fake rumor viral",
-    "false claims on social media",
-    "government releases official report",
-    "official statement from ministry",
-    "weather department issues storm warning",
-    "heavy rain expected in city",
-    "police confirms incident officially"
-]
+# load fake data
+fake_df = pd.concat([
+    pd.read_csv("Fake1.csv"),
+    pd.read_csv("Fake2.csv"),
+    pd.read_csv("Fake3.csv"),
+    pd.read_csv("Fake4.csv"),
+    pd.read_csv("Fake5.csv"),
+    pd.read_csv("Fake6.csv")
+])
 
-labels = [
-    "Fake","Fake","Fake",
-    "Real","Real","Real","Real","Real"
-]
+# load real data
+true_df = pd.concat([
+    pd.read_csv("True1.csv"),
+    pd.read_csv("True2.csv"),
+    pd.read_csv("True3.csv"),
+    pd.read_csv("True4.csv")
+])
 
+# add labels
+fake_df["label"] = "Fake"
+true_df["label"] = "Real"
 
+# combine
+data = pd.concat([fake_df, true_df])
 
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(sample_data)
+# select columns
+texts = data["text"]
+labels = data["label"]
+
+# train model
+vectorizer = TfidfVectorizer(max_features=5000)
+X = vectorizer.fit_transform(texts)
+
 model = MultinomialNB()
 model.fit(X, labels)
 
-
-
-
-st.title("📰 Fake News Detector")
-
-st.write("Enter news using text, link, or image")
-
+# UI
+st.title("Fake News Detector")
 text = st.text_area("Enter text")
-link = st.text_input("Enter link")
-image = st.file_uploader("Upload image")
 
+# prediction
 if st.button("Check"):
     if text:
         cleaned = clean_text(text)
-
         vector = vectorizer.transform([cleaned])
-
         prediction = model.predict(vector)[0]
-
         st.write("Result:", prediction)
-
     else:
         st.write("Enter some text")
