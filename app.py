@@ -30,7 +30,7 @@ true_df = pd.concat([
 fake_df["label"] = "Fake"
 true_df["label"] = "Real"
 
-# combine
+# combine data
 data = pd.concat([fake_df, true_df])
 
 # select columns
@@ -44,9 +44,13 @@ X = vectorizer.fit_transform(texts)
 model = MultinomialNB()
 model.fit(X, labels)
 
-# UI
-st.title("Fake News Detector")
+# UI (your original)
+st.title("📰 Fake News Detector")
+st.write("Enter news using text, link, or image")
+
 text = st.text_area("Enter text")
+link = st.text_input("Enter link")
+image = st.file_uploader("Upload image")
 
 # prediction
 if st.button("Check"):
@@ -55,5 +59,9 @@ if st.button("Check"):
         vector = vectorizer.transform([cleaned])
         prediction = model.predict(vector)[0]
         st.write("Result:", prediction)
+    elif link:
+        st.write("Link input received")
+    elif image:
+        st.write("Image input received")
     else:
-        st.write("Enter some text")
+        st.write("No input provided")
