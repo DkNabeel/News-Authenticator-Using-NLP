@@ -38,7 +38,7 @@ def load_model():
     data = pd.concat([fake_df, true_df])
 
     # reduce size for speed
-    data = data.sample(3000)
+
 
     # select columns
     texts = data["text"]
