@@ -9,29 +9,26 @@ def clean_text(text):
     text = re.sub(r'[^a-zA-Z ]', '', text)
     return text
 
-
 sample_data = [
-    "fake news spreading fast","breaking fake rumor viral","false claims on social media","government releases official report","official statement from ministry","weather department issues storm warning","heavy rain expected in city","police confirms incident officially"
     "fake news spreading fast",
-    "breaking fake news viral on social media",
+    "breaking fake rumor viral",
+    "false claims on social media",
     "government releases official report",
-    "official statement from health ministry",
-    "storm warning issued today",
-    "weather department alert cyclone",
-    "heavy rain expected in coastal areas",
-    "earthquake reported in city",
-    "scientists discover new technology",
-    "market crashes due to economic issues",
-    "viral message claims miracle cure",
-    "false rumors spreading online",
-    "news channel reports major event",
+    "official statement from ministry",
+    "weather department issues storm warning",
+    "heavy rain expected in city",
     "police confirms incident officially"
 ]
 
-labels = ["Fake","Fake","Fake","Real","Real","Real","Real","Real"]
+labels = [
+    "Fake","Fake","Fake",
+    "Real","Real","Real","Real","Real"
+]
+
+
 
 vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(texts)
+X = vectorizer.fit_transform(sample_data)
 model = MultinomialNB()
 model.fit(X, labels)
 
