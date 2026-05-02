@@ -5,100 +5,101 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
+# --- CONFIG ---
+API_KEY = "YOUR_API_KEY_HERE"  # put your key here
 
-#Api Key
-API_KEY = "1419dc2a4d3645fab05cf5e8f497e16f"
-
-# clean text
+# --- TEXT UTILS ---
 def clean_text(text):
     return re.sub(r'[^a-zA-Z ]', '', text.lower())
 
-#News Verify
+def extract_keywords(text):
+    stopwords = {"the","is","on","in","at","a","an","and","of","to"}
+    words = text.split()
+    keywords = [w for w in words if w not in stopwords]
+    return " ".join(keywords[:5])
+
+def is_relevant(user_text, article_title):
+    user_words = set(user_text.split())
+    title_words = set((article_title or "").lower().split())
+    return len(user_words.intersection(title_words)) >= 1
+
+# --- API ---
 def verify_news(query):
     url = "https://newsapi.org/v2/everything"
-
     params = {
         "q": query,
         "apiKey": API_KEY,
         "domains": "thehindu.com,indiatimes.com,indianexpress.com,ndtv.com,reuters.com",
-        "pageSize": 2
+        "pageSize": 5,
+        "sortBy": "relevancy",
     }
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    try:
+        res = requests.get(url, params=params, timeout=10)
+        data = res.json()
+    except Exception:
+        return False, [], []
 
-    if data["status"] == "ok" and data["totalResults"] > 0:
-        articles = data["articles"]
+    if data.get("status") == "ok" and data.get("totalResults", 0) > 0:
+        articles = data.get("articles", [])
+        links, sources = [], []
 
-        links = []
-        sources = []
+        for a in articles:
+            title = (a.get("title") or "").lower()
+            if is_relevant(query, title):
+                links.append(a.get("url"))
+                sources.append(a.get("source", {}).get("name"))
 
-        for article in articles:
-            links.append(article["url"])
-            sources.append(article["source"]["name"])
-
-        return True, links, sources
+        if links:
+            return True, links[:2], sources[:2]
 
     return False, [], []
 
-# load + train model (runs only once)
+# --- MODEL ---
 @st.cache_resource
 def load_model():
-
-    # load fake files
     fake_df = pd.concat([
         pd.read_csv("Fake1.csv"),
         pd.read_csv("Fake2.csv"),
         pd.read_csv("Fake3.csv"),
         pd.read_csv("Fake4.csv"),
         pd.read_csv("Fake5.csv"),
-        pd.read_csv("Fake6.csv")
+        pd.read_csv("Fake6.csv"),
     ])
 
-    # load real files
     true_df = pd.concat([
         pd.read_csv("True1.csv"),
         pd.read_csv("True2.csv"),
         pd.read_csv("True3.csv"),
-        pd.read_csv("True4.csv")
+        pd.read_csv("True4.csv"),
     ])
 
-    # add labels
     fake_df["label"] = "Fake"
     true_df["label"] = "Real"
 
-    # combine
     data = pd.concat([fake_df, true_df])
 
-    # reduce size for speed
-
-
-    # select columns
     texts = data["text"]
     labels = data["label"]
 
-    # vectorize
     vectorizer = TfidfVectorizer(max_features=5000)
     X = vectorizer.fit_transform(texts)
 
-    # train model
     model = MultinomialNB()
     model.fit(X, labels)
 
     return vectorizer, model
 
-# load model once
 vectorizer, model = load_model()
 
-# UI
-st.title("📰 Fake News Detector")
+# --- UI ---
+st.title("Fake News Detector")
 st.write("Enter news using text, link, or image")
 
 text = st.text_area("Enter text")
 link = st.text_input("Enter link")
 image = st.file_uploader("Upload image")
 
-# prediction
 if st.button("Check"):
     if text:
         cleaned = clean_text(text)
@@ -107,26 +108,22 @@ if st.button("Check"):
         vector = vectorizer.transform([cleaned])
         prediction = model.predict(vector)[0]
 
-        # API verification
-        is_verified, links, sources = verify_news(cleaned)
+        # API verification (keyword-based + relevance filter)
+        query = extract_keywords(cleaned)
+        is_verified, links, sources = verify_news(query)
 
         if is_verified:
-            st.write("Result:", prediction, "(Verified ✅)")
-
+            st.write("Result:", prediction, "(Verified)")
             if sources:
-                st.write(f"Verified from: {sources[0]} 🔗")
-
-            for link in links:
-                st.write(link)
-
+                st.write("Verified from:", sources[0])
+            for l in links:
+                st.write(l)
         else:
-            st.write("Result:", prediction, "(Unverified ⚠️)")
+            st.write("Result:", prediction, "(Unverified)")
 
     elif link:
         st.write("Link input received")
-
     elif image:
         st.write("Image input received")
-
-    else: 
+    else:
         st.write("No input provided")
