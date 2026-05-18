@@ -126,7 +126,7 @@ def verify_news(query):
         "engine": "google",
 
         "q": query,
-        
+
         "tbm": "nws",
 
         "api_key": API_KEY,
@@ -151,8 +151,9 @@ def verify_news(query):
             "message": "Search Error"
         }
 
-    organic_results = results.get(
-        "organic_results",
+    # FIXED KEY
+    news_results = results.get(
+        "news_results",
         []
     )
 
@@ -160,7 +161,7 @@ def verify_news(query):
 
     query_words = query.lower().split()
 
-    for result in organic_results:
+    for result in news_results:
 
         title = result.get("title", "")
 
@@ -172,7 +173,7 @@ def verify_news(query):
             title + " " + snippet
         ).lower()
 
-        # trusted site filter
+        # trusted source filter
         trusted = any(
 
             site in link
@@ -192,7 +193,6 @@ def verify_news(query):
             if word in combined:
 
                 score += 1
-
 
         filtered_articles.append({
 
