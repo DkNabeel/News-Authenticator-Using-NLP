@@ -1,7 +1,7 @@
 import requests
 from difflib import SequenceMatcher
 
-API_KEY = "YOUR_API_KEY"
+API_KEY = "7b2e88865f424ba6b2f750393fa8aae8"
 
 TRUSTED_SOURCES = (
     "reuters.com,"
