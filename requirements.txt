@@ -5,3 +5,5 @@ numpy
 scikit-learn
 nltk
 google-search-results
+transformers
+torch
