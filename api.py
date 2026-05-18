@@ -60,12 +60,34 @@ TRUSTED_SOURCES = (
     "screenrant.com"
 )
 
+def build_search_query(user_query):
+
+    words = user_query.lower().split()
+
+    important_words = []
+
+    for word in words:
+
+        if len(word) > 3:
+            important_words.append(word)
+
+    if len(important_words) >= 2:
+
+        query = " AND ".join(important_words)
+
+    else:
+
+        query = user_query
+
+    return query
+
 def verify_news(query):
 
     url = "https://newsapi.org/v2/everything"
 
     params = {
-        "q": query,
+        search_query = build_search_query(query)
+        "q": search_query,
         "apiKey": API_KEY,
         "domains": TRUSTED_SOURCES,
         "language": "en",
