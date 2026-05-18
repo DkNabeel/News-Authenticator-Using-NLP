@@ -57,9 +57,15 @@ if st.button("Check"):
             for article in result["articles"]:
 
                 st.write("Title:", article["title"])
-                st.write("Source:", article["source"])
+
+                st.write("URL:", article["url"])
+
                 st.write("Match Score:", article["score"])
-                st.link_button("Open Article", article["url"])
+
+                st.link_button(
+                    "Open Article",
+                    article["url"]
+                )
                 st.write("---")
 
         else:
