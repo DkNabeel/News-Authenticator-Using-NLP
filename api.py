@@ -84,9 +84,9 @@ def build_search_query(user_query):
 def verify_news(query):
 
     url = "https://newsapi.org/v2/everything"
-
+    
+    search_query = build_search_query(query)
     params = {
-        search_query = build_search_query(query)
         "q": search_query,
         "apiKey": API_KEY,
         "domains": TRUSTED_SOURCES,
