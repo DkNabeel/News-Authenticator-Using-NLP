@@ -2,7 +2,7 @@ import streamlit as st
 
 from utils import clean_text
 from model import load_model
-from api import verify_news
+from verification import verify_news
 
 # fast loading
 @st.cache_resource
