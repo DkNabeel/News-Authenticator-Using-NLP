@@ -1,5 +1,10 @@
 import requests
-from difflib import SequenceMatcher
+
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# load semantic model
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 API_KEY = "7b2e88865f424ba6b2f750393fa8aae8"
 
@@ -16,7 +21,6 @@ TRUSTED_SOURCES = (
     "npr.org,"
     "dw.com,"
     "france24.com,"
-    "independent.co.uk,"
     "theguardian.com,"
     "ndtv.com,"
     "thehindu.com,"
@@ -26,75 +30,36 @@ TRUSTED_SOURCES = (
     "news18.com,"
     "firstpost.com,"
     "deccanherald.com,"
-    "telegraphindia.com,"
     "espn.com,"
-    "sports.ndtv.com,"
     "cricbuzz.com,"
     "goal.com,"
-    "skysports.com,"
-    "bleacherreport.com,"
     "webmd.com,"
     "healthline.com,"
     "medicalnewstoday.com,"
-    "everydayhealth.com,"
     "who.int,"
     "nih.gov,"
     "mayoclinic.org,"
-    "cdc.gov,"
     "techcrunch.com,"
     "theverge.com,"
     "wired.com,"
     "arstechnica.com,"
-    "engadget.com,"
-    "gizmodo.com,"
-    "tomshardware.com,"
     "moneycontrol.com,"
     "investopedia.com,"
     "marketwatch.com,"
     "cointelegraph.com,"
     "nasa.gov,"
     "space.com,"
-    "livescience.com,"
     "sciencealert.com,"
-    "nationalgeographic.com,"
-    "weather.com,"
-    "accuweather.com,"
-    "noaa.gov,"
-    "fifa.com,"
-    "olympics.com,"
-    "formula1.com,"
     "animenewsnetwork.com,"
     "crunchyroll.com,"
-    "myanimelist.net,"
     "imdb.com,"
-    "rottentomatoes.com,"
-    "letterboxd.com,"
     "ign.com,"
     "gamespot.com,"
-    "pcgamer.com,"
     "polygon.com,"
-    "kotaku.com,"
     "variety.com,"
-    "hollywoodreporter.com,"
-    "deadline.com,"
     "screenrant.com"
 )
 
-# similarity score
-def similarity(a, b):
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
-
-# keyword overlap score
-def keyword_overlap(user_text, article_title):
-
-    user_words = set(user_text.lower().split())
-    title_words = set(article_title.lower().split())
-
-    common = user_words.intersection(title_words)
-
-    return len(common)
-
-# verification
 def verify_news(query):
 
     url = "https://newsapi.org/v2/everything"
@@ -134,6 +99,9 @@ def verify_news(query):
 
     ranked_articles = []
 
+    # convert query into embedding
+    query_embedding = model.encode([query])
+
     for article in articles:
 
         title = article.get("title", "")
@@ -141,42 +109,38 @@ def verify_news(query):
         source = article.get("source", {}).get("name", "")
         link = article.get("url", "")
 
-    #combine title + description
         combined_text = title + " " + description
 
-    # score 1 - keyword overlap
-        overlap_score = keyword_overlap(query, combined_text) * 20
- 
-    # score 2 - sentence similarity
-        similarity_score = similarity(query, combined_text) * 50
+        # convert article into embedding
+        article_embedding = model.encode([combined_text])
 
-    # score 3 - trusted source bonus
-        trusted_score = 20
-
-    # final score
-        final_score = overlap_score + similarity_score + trusted_score
+        # semantic similarity
+        similarity_score = cosine_similarity(
+            query_embedding,
+            article_embedding
+        )[0][0]
 
         ranked_articles.append({
 
-        "title": title,
-        "source": source,
-        "url": link,
-        "score": round(final_score, 2)
+            "title": title,
+            "source": source,
+            "url": link,
+            "score": round(float(similarity_score), 3)
 
-    })
+        })
 
-    # sort highest score first
+    # highest semantic match first
     ranked_articles.sort(
         key=lambda x: x["score"],
         reverse=True
     )
 
-    # keep strong matches only
+    # keep only good semantic matches
     filtered_articles = []
 
     for article in ranked_articles:
 
-        if article["score"] >= 50:
+        if article["score"] >= 0.35:
 
             filtered_articles.append(article)
 
@@ -185,7 +149,7 @@ def verify_news(query):
         return {
             "verified": True,
             "articles": filtered_articles[:3],
-            "message": "Relevant News Found"
+            "message": "Semantic Match Found"
         }
 
     return {
