@@ -2,6 +2,7 @@ import streamlit as st
 
 from utils import clean_text
 from model import load_model
+from api import verify_news
 
 # fast loading
 @st.cache_resource
@@ -24,18 +25,43 @@ if st.button("Check"):
 
     if text:
 
+        # clean text
         cleaned = clean_text(text)
 
+        # vector conversion
         vector = vectorizer.transform([cleaned])
 
+        # ML prediction
         prediction = model.predict(vector)[0]
 
-        st.subheader("Result")
+        # API verification
+        result = verify_news(cleaned)
+
+        # ML Result
+        st.subheader("ML Prediction")
 
         if prediction == "Real":
             st.success("Real News")
         else:
             st.error("Fake News")
+
+        # Source Verification
+        st.subheader("Source Verification")
+
+        if result["verified"]:
+
+            st.success(result["message"])
+
+            for article in result["articles"]:
+
+                st.write("Title:", article["title"])
+                st.write("Source:", article["source"])
+                st.write("Match Score:", article["score"])
+                st.write(article["url"])
+                st.write("---")
+
+        else:
+            st.warning(result["message"])
 
     elif link:
         st.info("Link feature coming soon")
