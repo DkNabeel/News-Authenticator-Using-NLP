@@ -70,7 +70,7 @@ def verify_news(query):
         score = similarity(query, title)
 
         # strict filtering
-        if score >= 0.45:
+        if score >= 0.25:
 
             matched_articles.append({
                 "title": title,
