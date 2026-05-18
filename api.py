@@ -97,27 +97,27 @@ def verify_news(query):
 
     for article in articles:
 
-    title = article.get("title", "")
-    description = article.get("description", "")
-    source = article.get("source", {}).get("name", "")
-    link = article.get("url", "")
+        title = article.get("title", "")
+        description = article.get("description", "")
+        source = article.get("source", {}).get("name", "")
+        link = article.get("url", "")
 
-    # combine title + description
-    combined_text = title + " " + description
+    #combine title + description
+        combined_text = title + " " + description
 
     # score 1 - keyword overlap
-    overlap_score = keyword_overlap(query, combined_text) * 20
-
+        overlap_score = keyword_overlap(query, combined_text) * 20
+ 
     # score 2 - sentence similarity
-    similarity_score = similarity(query, combined_text) * 50
+        similarity_score = similarity(query, combined_text) * 50
 
     # score 3 - trusted source bonus
-    trusted_score = 20
+        trusted_score = 20
 
     # final score
-    final_score = overlap_score + similarity_score + trusted_score
+        final_score = overlap_score + similarity_score + trusted_score
 
-    ranked_articles.append({
+        ranked_articles.append({
 
         "title": title,
         "source": source,
