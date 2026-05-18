@@ -1,9 +1,7 @@
 streamlit
-sentence-transformers
-torch
-scikit-learn
+requests
 pandas
 numpy
-pytesseract
-newspaper3k
-requests
+scikit-learn
+nltk
+google-search-results
