@@ -193,9 +193,6 @@ def verify_news(query):
 
                 score += 1
 
-        if score < 2:
-
-            continue
 
         filtered_articles.append({
 
