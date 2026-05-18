@@ -1,6 +1,14 @@
 from serpapi import GoogleSearch
+from transformers import pipeline
 
 API_KEY = "a1841364616c266ca94b9d9b223ca5d26687c06867ef1e34a1c0c80f527f3719"
+
+classifier = pipeline(
+
+    "text-classification",
+
+    model="facebook/bart-large-mnli"
+)
 
 TRUSTED_SOURCES = [
 
@@ -119,6 +127,15 @@ TRUSTED_SOURCES = [
     "noaa.gov"
 ]
 
+def verify_claim(claim, evidence):
+
+    result = classifier(
+
+        f"{claim} </s></s> {evidence}"
+    )
+
+    return result[0]
+
 def verify_news(query):
 
     params = {
@@ -151,15 +168,12 @@ def verify_news(query):
             "message": "Search Error"
         }
 
-    # FIXED KEY
     news_results = results.get(
         "news_results",
         []
     )
 
     filtered_articles = []
-
-    query_words = query.lower().split()
 
     for result in news_results:
 
@@ -171,7 +185,7 @@ def verify_news(query):
 
         combined = (
             title + " " + snippet
-        ).lower()
+        )
 
         # trusted source filter
         trusted = any(
@@ -185,14 +199,32 @@ def verify_news(query):
 
             continue
 
-        # lightweight relevance
-        score = 0
+        # AI claim verification
+        nli_result = verify_claim(
 
-        for word in query_words:
+            query,
 
-            if word in combined:
+            combined
+        )
 
-                score += 1
+        label = nli_result["label"]
+
+        confidence = round(
+            nli_result["score"],
+            3
+        )
+
+        if label == "ENTAILMENT":
+
+            verdict = "SUPPORTS"
+
+        elif label == "CONTRADICTION":
+
+            verdict = "CONTRADICTS"
+
+        else:
+
+            verdict = "NEUTRAL"
 
         filtered_articles.append({
 
@@ -200,14 +232,10 @@ def verify_news(query):
 
             "url": link,
 
-            "score": score
+            "verdict": verdict,
+
+            "confidence": confidence
         })
-
-    filtered_articles.sort(
-
-        key=lambda x: x["score"],
-        reverse=True
-    )
 
     if filtered_articles:
 
@@ -217,7 +245,7 @@ def verify_news(query):
 
             "articles": filtered_articles[:5],
 
-            "message": "Verified Results Found"
+            "message": "Verification Complete"
         }
 
     return {
