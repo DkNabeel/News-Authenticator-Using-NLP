@@ -44,6 +44,8 @@ if st.button("Check"):
             st.success("Real News")
         else:
             st.error("Fake News")
+            
+        st.info("ML result may be inaccurate. Prefer source verification.")
 
         # Source Verification
         st.subheader("Source Verification")
@@ -57,7 +59,7 @@ if st.button("Check"):
                 st.write("Title:", article["title"])
                 st.write("Source:", article["source"])
                 st.write("Match Score:", article["score"])
-                st.write(article["url"])
+                st.link_button("Open Article", article["url"])
                 st.write("---")
 
         else:
