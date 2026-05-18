@@ -1,7 +1,7 @@
 import requests
 from difflib import SequenceMatcher
 
-API_KEY = "7b2e88865f424ba6b2f750393fa8aae8"
+API_KEY = "YOUR_API_KEY"
 
 TRUSTED_SOURCES = (
     "reuters.com,"
@@ -21,11 +21,21 @@ TRUSTED_SOURCES = (
     "firstpost.com"
 )
 
-# compare similarity
+# similarity score
 def similarity(a, b):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
-# smart verification
+# keyword overlap score
+def keyword_overlap(user_text, article_title):
+
+    user_words = set(user_text.lower().split())
+    title_words = set(article_title.lower().split())
+
+    common = user_words.intersection(title_words)
+
+    return len(common)
+
+# verification
 def verify_news(query):
 
     url = "https://newsapi.org/v2/everything"
@@ -40,10 +50,13 @@ def verify_news(query):
     }
 
     try:
+
         response = requests.get(url, params=params, timeout=10)
+
         data = response.json()
 
     except Exception:
+
         return {
             "verified": False,
             "articles": [],
@@ -51,6 +64,7 @@ def verify_news(query):
         }
 
     if data.get("status") != "ok":
+
         return {
             "verified": False,
             "articles": [],
@@ -59,7 +73,7 @@ def verify_news(query):
 
     articles = data.get("articles", [])
 
-    matched_articles = []
+    ranked_articles = []
 
     for article in articles:
 
@@ -67,35 +81,46 @@ def verify_news(query):
         source = article.get("source", {}).get("name", "")
         link = article.get("url", "")
 
-        score = similarity(query, title)
+        # score 1
+        overlap_score = keyword_overlap(query, title) * 20
 
-        # strict filtering
-        if score >= 0.25:
+        # score 2
+        similarity_score = similarity(query, title) * 50
 
-            matched_articles.append({
-                "title": title,
-                "source": source,
-                "url": link,
-                "score": round(score, 2)
-            })
+        # score 3
+        trusted_score = 20
 
-    # fallback if strict match fails
-    if len(matched_articles) == 0 and len(articles) > 0:
+        final_score = overlap_score + similarity_score + trusted_score
 
-        for article in articles[:3]:
+        ranked_articles.append({
 
-            matched_articles.append({
-                "title": article.get("title", ""),
-                "source": article.get("source", {}).get("name", ""),
-                "url": article.get("url", ""),
-                "score": "Low Match"
-            })
+            "title": title,
+            "source": source,
+            "url": link,
+            "score": round(final_score, 2)
 
-    if matched_articles:
+        })
+
+    # sort highest score first
+    ranked_articles.sort(
+        key=lambda x: x["score"],
+        reverse=True
+    )
+
+    # keep strong matches only
+    filtered_articles = []
+
+    for article in ranked_articles:
+
+        if article["score"] >= 50:
+
+            filtered_articles.append(article)
+
+    if filtered_articles:
 
         return {
             "verified": True,
-            "articles": matched_articles,
+            "articles": filtered_articles[:3],
             "message": "Relevant News Found"
         }
 
