@@ -7,13 +7,16 @@ from verification import verify_news
 # fast loading
 @st.cache_resource
 def get_model():
+
     return load_model()
 
 vectorizer, model = get_model()
 
 st.title("Fake News Detector")
 
-st.write("Enter news using text, link, or image")
+st.write(
+    "Enter news using text, link, or image"
+)
 
 text = st.text_area("Enter Text")
 
@@ -29,53 +32,95 @@ if st.button("Check"):
         cleaned = clean_text(text)
 
         # vector conversion
-        vector = vectorizer.transform([cleaned])
+        vector = vectorizer.transform(
+            [cleaned]
+        )
 
         # ML prediction
-        prediction = model.predict(vector)[0]
+        prediction = model.predict(
+            vector
+        )[0]
 
-        # API verification
+        # Source verification
         result = verify_news(cleaned)
 
         # ML Result
         st.subheader("ML Prediction")
 
         if prediction == "Real":
+
             st.success("Real News")
+
         else:
+
             st.error("Fake News")
-            
-        st.info("ML result may be inaccurate. Prefer source verification.")
+
+        st.info(
+            "ML result may be inaccurate. Prefer source verification."
+        )
 
         # Source Verification
-        st.subheader("Source Verification")
+        st.subheader(
+            "Source Verification"
+        )
 
         if result["verified"]:
 
-            st.success(result["message"])
+            st.success(
+                result["message"]
+            )
 
             for article in result["articles"]:
 
-                st.write("Title:", article["title"])
+                st.write(
+                    "Title:",
+                    article["title"]
+                )
 
-                st.write("URL:", article["url"])
+                st.write(
+                    "Verdict:",
+                    article["verdict"]
+                )
 
-                st.write("Match Score:", article["score"])
+                st.write(
+                    "Confidence:",
+                    article["confidence"]
+                )
 
-                st.link_button(
-                    "Open Article",
+                st.write(
+                    "URL:",
                     article["url"]
                 )
+
+                st.link_button(
+
+                    "Open Article",
+
+                    article["url"]
+                )
+
                 st.write("---")
 
         else:
-            st.warning(result["message"])
+
+            st.warning(
+                result["message"]
+            )
 
     elif link:
-        st.info("Link feature coming soon")
+
+        st.info(
+            "Link feature coming soon"
+        )
 
     elif image:
-        st.info("Image feature coming soon")
+
+        st.info(
+            "Image feature coming soon"
+        )
 
     else:
-        st.warning("Please enter some input")
+
+        st.warning(
+            "Please enter some input"
+        )
