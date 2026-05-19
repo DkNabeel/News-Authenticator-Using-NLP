@@ -7,3 +7,6 @@ nltk
 google-search-results
 transformers
 torch
+sentence-transformers
+
+
