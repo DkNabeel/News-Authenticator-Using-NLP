@@ -5,14 +5,13 @@ API_KEY = "a1841364616c266ca94b9d9b223ca5d26687c06867ef1e34a1c0c80f527f3719"
 
 classifier = pipeline(
 
-    "text-classification",
+    "zero-shot-classification",
 
     model="facebook/bart-large-mnli"
 )
 
 TRUSTED_SOURCES = [
 
-    # Global News
     "reuters.com",
     "apnews.com",
     "bbc.com",
@@ -31,7 +30,6 @@ TRUSTED_SOURCES = [
     "axios.com",
     "time.com",
 
-    # India
     "ndtv.com",
     "thehindu.com",
     "indianexpress.com",
@@ -48,7 +46,6 @@ TRUSTED_SOURCES = [
     "mathrubhumi.com",
     "asianetnews.com",
 
-    # Sports
     "espn.com",
     "espncricinfo.com",
     "cricbuzz.com",
@@ -60,7 +57,6 @@ TRUSTED_SOURCES = [
     "nba.com",
     "formula1.com",
 
-    # Health / Medical
     "who.int",
     "nih.gov",
     "cdc.gov",
@@ -71,7 +67,6 @@ TRUSTED_SOURCES = [
     "clevelandclinic.org",
     "hopkinsmedicine.org",
 
-    # Technology
     "techcrunch.com",
     "theverge.com",
     "wired.com",
@@ -83,7 +78,6 @@ TRUSTED_SOURCES = [
     "gsmarena.com",
     "9to5google.com",
 
-    # Science / Space
     "nasa.gov",
     "space.com",
     "sciencealert.com",
@@ -92,14 +86,12 @@ TRUSTED_SOURCES = [
     "newscientist.com",
     "sciencedaily.com",
 
-    # Finance / Business
     "investopedia.com",
     "marketwatch.com",
     "finance.yahoo.com",
     "cointelegraph.com",
     "coindesk.com",
 
-    # Anime / Entertainment
     "animenewsnetwork.com",
     "crunchyroll.com",
     "imdb.com",
@@ -111,17 +103,14 @@ TRUSTED_SOURCES = [
     "comicbook.com",
     "kotaku.com",
 
-    # Gaming
     "pcgamer.com",
     "rockpapershotgun.com",
     "eurogamer.net",
 
-    # Education / Research
     "mit.edu",
     "stanford.edu",
     "harvard.edu",
 
-    # Weather / Climate
     "weather.com",
     "accuweather.com",
     "noaa.gov"
@@ -131,10 +120,31 @@ def verify_claim(claim, evidence):
 
     result = classifier(
 
-        f"{claim} </s></s> {evidence}"
+        evidence,
+
+        candidate_labels=[
+
+            "supports claim",
+
+            "contradicts claim"
+        ]
     )
 
-    return result[0]
+    top_label = result["labels"][0]
+
+    confidence = round(
+
+        result["scores"][0],
+
+        3
+    )
+
+    return {
+
+        "label": top_label,
+
+        "score": confidence
+    }
 
 def verify_news(query):
 
@@ -145,6 +155,8 @@ def verify_news(query):
         "q": query,
 
         "tbm": "nws",
+
+        "tbs": "qdr:w",
 
         "api_key": API_KEY,
 
@@ -169,11 +181,17 @@ def verify_news(query):
         }
 
     news_results = results.get(
+
         "news_results",
+
         []
     )
 
     filtered_articles = []
+
+    support_count = 0
+
+    contradict_count = 0
 
     for result in news_results:
 
@@ -184,10 +202,10 @@ def verify_news(query):
         link = result.get("link", "")
 
         combined = (
+
             title + " " + snippet
         )
 
-        # trusted source filter
         trusted = any(
 
             site in link
@@ -199,7 +217,6 @@ def verify_news(query):
 
             continue
 
-        # AI claim verification
         nli_result = verify_claim(
 
             query,
@@ -210,21 +227,27 @@ def verify_news(query):
         label = nli_result["label"]
 
         confidence = round(
+
             nli_result["score"],
+
             3
         )
 
-        if label == "ENTAILMENT":
+        if confidence < 0.75:
+
+            continue
+
+        if label == "supports claim":
 
             verdict = "SUPPORTS"
 
-        elif label == "CONTRADICTION":
-
-            verdict = "CONTRADICTS"
+            support_count += 1
 
         else:
 
-            verdict = "NEUTRAL"
+            verdict = "CONTRADICTS"
+
+            contradict_count += 1
 
         filtered_articles.append({
 
@@ -237,22 +260,39 @@ def verify_news(query):
             "confidence": confidence
         })
 
-    if filtered_articles:
+    if support_count >= 2:
 
         return {
 
             "verified": True,
 
+            "final_verdict": "REAL",
+
             "articles": filtered_articles[:5],
 
-            "message": "Verification Complete"
+            "message": "Claim Verified"
+        }
+
+    elif contradict_count >= 2:
+
+        return {
+
+            "verified": False,
+
+            "final_verdict": "FAKE",
+
+            "articles": filtered_articles[:5],
+
+            "message": "Claim Contradicted"
         }
 
     return {
 
         "verified": False,
 
+        "final_verdict": "NOT VERIFIED",
+
         "articles": [],
 
-        "message": "No Relevant Match"
+        "message": "Insufficient Evidence"
     }
