@@ -3,16 +3,29 @@ nltk.download("punkt")
 nltk.download("punkt_tab")
 
 from nltk.tokenize import sent_tokenize
+
 from serpapi import GoogleSearch
+
 from transformers import pipeline
+
+from sentence_transformers import SentenceTransformer
+
+from sklearn.metrics.pairwise import cosine_similarity
 
 API_KEY = "a1841364616c266ca94b9d9b223ca5d26687c06867ef1e34a1c0c80f527f3719"
 
+# FACT CHECKING MODEL
 classifier = pipeline(
 
     "text-classification",
 
     model="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+)
+
+# EMBEDDING MODEL
+embedding_model = SentenceTransformer(
+
+    "all-MiniLM-L6-v2"
 )
 
 TRUSTED_SOURCES = [
@@ -184,6 +197,52 @@ def verify_claim(
         "score": confidence
     }
 
+def rerank_articles(
+
+    query,
+
+    articles
+):
+
+    query_embedding = embedding_model.encode(
+
+        [query]
+    )
+
+    scored_articles = []
+
+    for article in articles:
+
+        text = article["evidence"]
+
+        article_embedding = embedding_model.encode(
+
+            [text]
+        )
+
+        similarity = cosine_similarity(
+
+            query_embedding,
+
+            article_embedding
+        )[0][0]
+
+        article["similarity"] = float(
+
+            similarity
+        )
+
+        scored_articles.append(article)
+
+    scored_articles.sort(
+
+        key=lambda x: x["similarity"],
+
+        reverse=True
+    )
+
+    return scored_articles[:3]
+
 def verify_news(query):
 
     params = {
@@ -308,8 +367,17 @@ def verify_news(query):
 
             "verdict": verdict,
 
-            "confidence": confidence
+            "confidence": confidence,
+
+            "evidence": best_evidence
         })
+
+    filtered_articles = rerank_articles(
+
+        query,
+
+        filtered_articles
+    )
 
     if support_count >= 1:
 
@@ -319,7 +387,7 @@ def verify_news(query):
 
             "final_verdict": "REAL",
 
-            "articles": filtered_articles[:5],
+            "articles": filtered_articles[:3],
 
             "message": "Claim Verified"
         }
@@ -332,7 +400,7 @@ def verify_news(query):
 
             "final_verdict": "FAKE",
 
-            "articles": filtered_articles[:5],
+            "articles": filtered_articles[:3],
 
             "message": "Claim Contradicted"
         }
