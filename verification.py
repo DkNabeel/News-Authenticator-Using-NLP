@@ -278,7 +278,7 @@ def verify_news(query):
             3
         )
 
-        if confidence < 0.75:
+        if confidence < 0.45:
 
             continue
 
@@ -311,7 +311,7 @@ def verify_news(query):
             "confidence": confidence
         })
 
-    if support_count >= 2:
+    if support_count >= 1:
 
         return {
 
@@ -324,7 +324,7 @@ def verify_news(query):
             "message": "Claim Verified"
         }
 
-    elif contradict_count >= 2:
+    elif contradict_count >= 1:
 
         return {
 
