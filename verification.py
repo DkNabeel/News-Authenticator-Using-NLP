@@ -1,3 +1,7 @@
+import nltk
+nltk.download("punkt")
+
+from nltk.tokenize import sent_tokenize
 from serpapi import GoogleSearch
 from transformers import pipeline
 
@@ -5,9 +9,9 @@ API_KEY = "a1841364616c266ca94b9d9b223ca5d26687c06867ef1e34a1c0c80f527f3719"
 
 classifier = pipeline(
 
-    "zero-shot-classification",
+    "text-classification",
 
-    model="facebook/bart-large-mnli"
+    model="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 )
 
 TRUSTED_SOURCES = [
@@ -116,32 +120,65 @@ TRUSTED_SOURCES = [
     "noaa.gov"
 ]
 
-def verify_claim(claim, evidence):
+def extract_best_sentence(
+
+    claim,
+
+    text
+):
+
+    sentences = sent_tokenize(text)
+
+    best_sentence = text
+
+    best_score = 0
+
+    claim_words = claim.lower().split()
+
+    for sentence in sentences:
+
+        score = 0
+
+        sentence_lower = sentence.lower()
+
+        for word in claim_words:
+
+            if word in sentence_lower:
+
+                score += 1
+
+        if score > best_score:
+
+            best_score = score
+
+            best_sentence = sentence
+
+    return best_sentence
+
+def verify_claim(
+
+    claim,
+
+    evidence
+):
 
     result = classifier(
 
-        evidence,
-
-        candidate_labels=[
-
-            "supports claim",
-
-            "contradicts claim"
-        ]
+        f"{claim} [SEP] {evidence}"
     )
 
-    top_label = result["labels"][0]
+    label = result[0]["label"].lower()
 
     confidence = round(
 
-        result["scores"][0],
+        result[0]["score"],
 
         3
     )
 
     return {
 
-        "label": top_label,
+        "label": label,
 
         "score": confidence
     }
@@ -203,7 +240,14 @@ def verify_news(query):
 
         combined = (
 
-            title + " " + snippet
+            title + ". " + snippet
+        )
+
+        best_evidence = extract_best_sentence(
+
+            query,
+
+            combined
         )
 
         trusted = any(
@@ -221,7 +265,7 @@ def verify_news(query):
 
             query,
 
-            combined
+            best_evidence
         )
 
         label = nli_result["label"]
@@ -237,17 +281,23 @@ def verify_news(query):
 
             continue
 
-        if label == "supports claim":
+        if label == "entailment":
 
             verdict = "SUPPORTS"
 
             support_count += 1
 
-        else:
+        elif label == "contradiction":
 
             verdict = "CONTRADICTS"
 
             contradict_count += 1
+
+        else:
+
+            verdict = "NOT VERIFIED"
+
+            continue
 
         filtered_articles.append({
 
